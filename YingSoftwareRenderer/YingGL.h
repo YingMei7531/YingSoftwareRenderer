@@ -2,12 +2,16 @@
 
 #include <cmath>
 #include "geometry.h"
+#include "tgaimage.h"
 #include "model.h"
+
+//设置屏幕参数
+void SetScreen(int w, int h, int d = 255);
 
 //设置模视矩阵
 void SetModelView(Matrix m);
 //设置视口矩阵
-void SetViewport(int x, int y, int w, int h, int depth);
+void SetViewport(int x, int y, int w, int h, int d = 255);
 //设置投影矩阵
 void SetProjection(int width, int height, float fov, float near, float far);
 //设置投影矩阵
@@ -21,6 +25,11 @@ Matrix GetMVPMatrix();
 //获取视口矩阵
 Matrix GetViewport();
 
+//设置阴影矩阵
+void SetShadowMatrix(Matrix m);
+//获取阴影矩阵
+Matrix GetShadowMatrix();
+
 //设置光源方向
 void SetLight(Vec3f v);
 //获取光源方向
@@ -29,6 +38,9 @@ Vec3f GetLight();
 void SetViewPos(Vec3f pos);
 //获取相机位置
 Vec3f GetViewPos();
+
+//将Vec4转为Vec3
+Vec3f Vec4ToVec3(Vec4f v);
 
 //平移
 Matrix Translate(float x, float y, float z);
@@ -56,4 +68,9 @@ public:
 };
 
 //绘制三角形
-void DrawTriangle(Vec3f* pts, TGAImage& zbuffer, TGAImage& image, Shader* shader, Model* model);
+void DrawTriangle(Vec3f* pts, float* zbuffer, TGAImage& image, Shader* shader, Model* model);
+
+//设置阴影缓存
+void SetShadowBuffer(float* shadow);
+//获取阴影
+float GetShadow(Vec3f v);

@@ -3,7 +3,7 @@
 Vec4f NormalShader::Vertex(int iface, int nthvert, Model* model) {
 	varying_uv.set_col(nthvert, model->uv(iface, nthvert));
 	Vec4f vertex = embed<4>(model->vert(iface, nthvert));
-	return GetMVPMatrix() * vertex;
+	return GetViewport() * GetMVPMatrix() * vertex;
 }
 
 bool NormalShader::Fragment(Vec3f bar, TGAColor& color, Model* model) {
@@ -12,11 +12,28 @@ bool NormalShader::Fragment(Vec3f bar, TGAColor& color, Model* model) {
 	return false;
 }
 
+Vec4f NormalShadowShader::Vertex(int iface, int nthvert, Model* model) {
+	varying_uv.set_col(nthvert, model->uv(iface, nthvert));
+	Vec4f vertex = embed<4>(model->vert(iface, nthvert));
+	varying_pos.set_col(nthvert, proj<3>(vertex));
+	return GetViewport() * GetMVPMatrix() * vertex;
+}
+
+bool NormalShadowShader::Fragment(Vec3f bar, TGAColor& color, Model* model) {
+	Vec2f uv = varying_uv * bar;
+	color = model->diffuse(uv);
+	Vec3f pos = varying_pos * bar;
+	pos = Vec4ToVec3(GetShadowMatrix() * embed<4>(pos));
+	float shadow = GetShadow(pos);
+	for (int i = 0; i < 3; i++) color[i] = (float)color[i] * shadow;
+	return false;
+}
+
 Vec4f BlinnPhongShader::Vertex(int iface, int nthvert, Model* model) {
 	varying_uv.set_col(nthvert, model->uv(iface, nthvert));
 	Vec4f vertex = embed<4>(model->vert(iface, nthvert));
 	varying_pos.set_col(nthvert, proj<3>(vertex));
-	return GetMVPMatrix() * vertex;
+	return GetViewport() * GetMVPMatrix() * vertex;
 }
 
 bool BlinnPhongShader::Fragment(Vec3f bar, TGAColor& color, Model* model) {

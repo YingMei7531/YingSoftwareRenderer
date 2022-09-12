@@ -1,21 +1,35 @@
 #include "YingGL.h"
 
+int width;              //屏幕宽度
+int height;             //屏幕高度
+int depth;              //屏幕深度
+
+float* shadowbuffer;    //阴影缓存
+
 Matrix modelview;       //模视矩阵
 Matrix viewport;        //视口矩阵
 Matrix projection;      //投影矩阵
 
+Matrix shadowmat;       //投影变换矩阵
+
 Vec3f light;            //光源方向（指向光源）
 Vec3f viewpos;          //相机位置
+
+void SetScreen(int w, int h, int d) {
+    width = w;
+    height = h;
+    depth = d;
+}
 
 void SetModelView(Matrix m) {
     modelview = m;
 }
 
 //将物体x，y坐标(-1,1)转换到屏幕坐标
-//zbuffer(-1,1)转换到0~255
-void SetViewport(int x, int y, int w, int h, int depth) {
+//z坐标(-1,1)转换到0~255
+void SetViewport(int x, int y, int w, int h, int d) {
     viewport = Matrix::identity();
-    viewport = Translate(x + w / 2.f, y + h / 2.f, depth / 2.f) * Scale(w / 2.f, h / 2.f, depth / 2.f);
+    viewport = Translate(x + w / 2.f, y + h / 2.f, d / 2.f) * Scale(w / 2.f, h / 2.f, d / 2.f);
 }
 
 void SetProjection(int width, int height, float fov, float near, float far) {
@@ -50,6 +64,14 @@ Matrix GetViewport() {
     return viewport;
 }
 
+void SetShadowMatrix(Matrix m) {
+    shadowmat = m;
+}
+
+Matrix GetShadowMatrix() {
+    return shadowmat;
+}
+
 void SetLight(Vec3f v) {
     light = v;
 }
@@ -64,6 +86,11 @@ void SetViewPos(Vec3f pos) {
 
 Vec3f GetViewPos() {
     return viewpos;
+}
+
+Vec3f Vec4ToVec3(Vec4f v) {
+    v = v / v[3];
+    return proj<3>(v);
 }
 
 Matrix Translate(float x, float y, float z) {
@@ -137,7 +164,7 @@ Vec3f Barycentric(Vec2f a, Vec2f b, Vec2f c, Vec2f p) {
     return Vec3f(-1, -1, -1);
 }
 
-void DrawTriangle(Vec3f* pts, TGAImage& zbuffer, TGAImage& image, Shader* shader, Model* model) {
+void DrawTriangle(Vec3f* pts, float* zbuffer, TGAImage& image, Shader* shader, Model* model) {
     int width = image.get_width();
     int height = image.get_height();
     Vec2f bboxmin(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
@@ -162,17 +189,31 @@ void DrawTriangle(Vec3f* pts, TGAImage& zbuffer, TGAImage& image, Shader* shader
             //质心坐标有负值，说明点在三角形外
             if (bc.x < 0 || bc.y < 0 || bc.z < 0) continue;
             //计算zbuffer，并且每个顶点的z值乘上对应的质心坐标分量
-            p.z = pts[0][2] * bc[0] + pts[1][2] * bc[1] + pts[2][2] * bc[2];
-            int z = std::max(0, std::min(255, int(p.z + 0.5)));
-            if (zbuffer.get(p.x, p.y)[0] < z) {
-                TGAColor color;
+            float z = pts[0][2] * bc[0] + pts[1][2] * bc[1] + pts[2][2] * bc[2];
+            if (z >= 255.5 || z < 0) continue;
+            if (zbuffer[p.x + p.y * width] < z) {
+                //如果没有shader，仅存入深度缓存
+                if (shader == nullptr) {
+                    zbuffer[p.x + p.y * width] = z;
+                    continue;
+                }
                 //用片元着色器计算当前像素颜色
+                TGAColor color;
                 bool discard = shader->Fragment(bc, color, model);
                 if (!discard) {
-                    zbuffer.set(p.x, p.y, TGAColor(z));
+                    zbuffer[p.x + p.y * width] = z;
                     image.set(p.x, p.y, color);
                 }
             }
         }
     }
+}
+
+void SetShadowBuffer(float* shadow) {
+    shadowbuffer = shadow;
+}
+
+float GetShadow(Vec3f v) {
+    float z = shadowbuffer[(int)v.x + (int)v.y * width];
+    return 0.3 + 0.7 * (z < v.z + 23.34);
 }
