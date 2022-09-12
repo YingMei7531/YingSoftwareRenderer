@@ -45,8 +45,9 @@ int main(int argc, char** argv) {
 
     //选择shader
     //Shader* shader = new NormalShader();
-    Shader* shader = new NormalShadowShader();
+    //Shader* shader = new NormalShadowShader();
     //Shader* shader = new BlinnPhongShader();
+    Shader* shader = new ToonShader();
 
     //绘制阴影缓存
 

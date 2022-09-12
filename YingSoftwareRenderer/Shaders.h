@@ -33,3 +33,14 @@ public:
 	Vec4f Vertex(int iface, int nthvert, Model* model);
 	bool Fragment(Vec3f bar, TGAColor& color, Model* model);
 };
+
+//¿¨Í¨»¯µÄshader
+class ToonShader : public Shader {
+private:
+	mat<2, 3, float> varying_uv;
+	mat<3, 3, float> varying_pos;
+public:
+	~ToonShader() {};
+	Vec4f Vertex(int iface, int nthvert, Model* model);
+	bool Fragment(Vec3f bar, TGAColor& color, Model* model);
+};
