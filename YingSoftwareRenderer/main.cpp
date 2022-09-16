@@ -13,6 +13,7 @@ int main(int argc, char** argv) {
         model = new Model(argv[1]);
     } else {
         model = new Model("obj/african_head.obj");
+        //model = new Model("obj/floor.obj");
     }
 
     //构造image
@@ -25,7 +26,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < width * height; i++) zbuffer[i] = std::numeric_limits<float>::min();
 
     //光照方向（指向光源）
-    Vec3f lightdir(0, 0, 1);
+    Vec3f lightdir(0, 1, 1);
     //摄像机位置
     Vec3f eye(2, 1, 2);
     //焦点位置
@@ -46,8 +47,8 @@ int main(int argc, char** argv) {
     //选择shader
     //Shader* shader = new NormalShader();
     //Shader* shader = new NormalShadowShader();
-    //Shader* shader = new BlinnPhongShader();
-    Shader* shader = new ToonShader();
+    Shader* shader = new BlinnPhongShader();
+    //Shader* shader = new ToonShader();
 
     //绘制阴影缓存
 
@@ -56,9 +57,9 @@ int main(int argc, char** argv) {
 
     for (int i = 0; i < model->nfaces(); i++) {
         std::vector<int> face = model->face(i);
-        Vec3f screen_coords[3];
+        Vec4f screen_coords[3];
         for (int j = 0; j < 3; j++) {
-            screen_coords[j] = Vec4ToVec3(GetViewport() * GetMVPMatrix() * embed<4>(model->vert(i, j)));
+            screen_coords[j] = GetViewport() * GetMVPMatrix() * embed<4>(model->vert(i, j));
         }
         DrawTriangle(screen_coords, shadowbuffer, image, nullptr, model);
     }
@@ -74,9 +75,9 @@ int main(int argc, char** argv) {
 
     for (int i = 0; i < model->nfaces(); i++) {
         std::vector<int> face = model->face(i);
-        Vec3f screen_coords[3];
+        Vec4f screen_coords[3];
         for (int j = 0; j < 3; j++) {
-            screen_coords[j] = Vec4ToVec3(shader->Vertex(i, j, model));
+            screen_coords[j] = shader->Vertex(i, j, model);
         }
         DrawTriangle(screen_coords, zbuffer, image, shader, model);
     }

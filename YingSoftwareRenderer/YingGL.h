@@ -68,7 +68,7 @@ public:
 };
 
 //绘制三角形
-void DrawTriangle(Vec3f* pts, float* zbuffer, TGAImage& image, Shader* shader, Model* model);
+void DrawTriangle(Vec4f* pts, float* zbuffer, TGAImage& image, Shader* shader, Model* model);
 
 //设置阴影缓存
 void SetShadowBuffer(float* shadow);

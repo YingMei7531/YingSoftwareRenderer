@@ -164,17 +164,17 @@ Vec3f Barycentric(Vec2f a, Vec2f b, Vec2f c, Vec2f p) {
     return Vec3f(-1, -1, -1);
 }
 
-void DrawTriangle(Vec3f* pts, float* zbuffer, TGAImage& image, Shader* shader, Model* model) {
+void DrawTriangle(Vec4f* pts, float* zbuffer, TGAImage& image, Shader* shader, Model* model) {
     int width = image.get_width();
     int height = image.get_height();
     Vec2f bboxmin(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
     Vec2f bboxmax(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
     //确定三角形的边框
     for (int i = 0; i < 3; i++) {
-        bboxmin.x = std::min(bboxmin.x, pts[i].x);
-        bboxmin.y = std::min(bboxmin.y, pts[i].y);
-        bboxmax.x = std::max(bboxmax.x, pts[i].x);
-        bboxmax.y = std::max(bboxmax.y, pts[i].y);
+        bboxmin.x = std::min(bboxmin.x, pts[i][0] / pts[i][3]);
+        bboxmin.y = std::min(bboxmin.y, pts[i][1] / pts[i][3]);
+        bboxmax.x = std::max(bboxmax.x, pts[i][0] / pts[i][3]);
+        bboxmax.y = std::max(bboxmax.y, pts[i][1] / pts[i][3]);
     }
     bboxmin.x = std::max(bboxmin.x, 0.0f);
     bboxmin.y = std::max(bboxmin.y, 0.0f);
@@ -185,11 +185,17 @@ void DrawTriangle(Vec3f* pts, float* zbuffer, TGAImage& image, Shader* shader, M
     for (p.x = bboxmin.x; p.x <= bboxmax.x; p.x++) {
         for (p.y = bboxmin.y; p.y <= bboxmax.y; p.y++) {
             //bc是质心坐标
-            Vec3f bc = Barycentric(proj<2>(pts[0]), proj<2>(pts[1]), proj<2>(pts[2]), Vec2f(p.x,p.y));
+            Vec3f bc = Barycentric(proj<2>(pts[0] / pts[0][3]), proj<2>(pts[1] / pts[1][3]), 
+                proj<2>(pts[2] / pts[2][3]), Vec2f(p.x,p.y));
             //质心坐标有负值，说明点在三角形外
             if (bc.x < 0 || bc.y < 0 || bc.z < 0) continue;
+            //矫正后的质心坐标
+            Vec3f bc_revised(bc[0] / pts[0][3], bc[1] / pts[1][3], bc[2] / pts[2][3]);
+            float zn = 1.0 / (bc_revised[0] + bc_revised[1] + bc_revised[2]);
+            for (int i = 0; i < 3; i++) bc_revised[i] *= zn;
             //计算zbuffer，并且每个顶点的z值乘上对应的质心坐标分量
-            float z = pts[0][2] * bc[0] + pts[1][2] * bc[1] + pts[2][2] * bc[2];
+            float z = (pts[0][2] / pts[0][3]) * bc_revised[0] + (pts[1][2] / pts[1][3]) * bc_revised[1]
+                + (pts[2][2] / pts[2][3]) * bc_revised[2];
             if (z >= 255.5 || z < 0) continue;
             if (zbuffer[p.x + p.y * width] < z) {
                 //如果没有shader，仅存入深度缓存
@@ -199,7 +205,7 @@ void DrawTriangle(Vec3f* pts, float* zbuffer, TGAImage& image, Shader* shader, M
                 }
                 //用片元着色器计算当前像素颜色
                 TGAColor color;
-                bool discard = shader->Fragment(bc, color, model);
+                bool discard = shader->Fragment(bc_revised, color, model);
                 if (!discard) {
                     zbuffer[p.x + p.y * width] = z;
                     image.set(p.x, p.y, color);

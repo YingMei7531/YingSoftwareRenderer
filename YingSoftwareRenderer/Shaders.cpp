@@ -53,7 +53,8 @@ bool BlinnPhongShader::Fragment(Vec3f bar, TGAColor& color, Model* model) {
 	float diff = std::max(0.0f, n * l);
 	float spec = pow(std::max(n * h, 0.0f), model->specular(uv));
 
-	float shadow = GetShadow(pos);
+	Vec3f shadowpos = Vec4ToVec3(GetShadowMatrix() * embed<4>(pos));
+	float shadow = GetShadow(shadowpos);
 
 	TGAColor c = model->diffuse(uv);
 	for (int i = 0; i < 3; i++) color[i] = std::min<float>((float)c[i] * (diff + spec) * shadow, 255);
